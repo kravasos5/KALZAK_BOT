@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 class AbstractDTOConverter(ABC):
     """Абстрактный конвертер DTO"""
 
+    @staticmethod
     @abstractmethod
-    def from_raw_to_dto(self, *args, **kwargs):
+    def from_raw_to_dto(*args, **kwargs):
         """Конвертировать ответ БД в DTO"""
         raise NotImplementedError
 
@@ -13,6 +14,7 @@ class AbstractDTOConverter(ABC):
 class DTOConverter(AbstractDTOConverter):
     """Конвертер DTO"""
 
-    def from_raw_to_dto(self, *args, **kwargs):
+    @staticmethod
+    def from_raw_to_dto(*args, **kwargs):
         """Конвертировать ответ БД в DTO"""
         ...
