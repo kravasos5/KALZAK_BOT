@@ -75,7 +75,7 @@ async def start_check_subscription(update: Update, context: ContextTypes.DEFAULT
     logger.info("User %s started the subscribe checking process.", user['first_name'])
     keyboard = [
         [
-            InlineKeyboardButton("Подписаться", url="https://t.me/rasti_s_it"),
+            InlineKeyboardButton("Подписаться", url="https://t.me/kalzak_chat"),#https://t.me/rasti_s_it
             InlineKeyboardButton("Я уже подписан", callback_data=str(CallbackEnum.CHECK_SUBSCRIPTION.value)),
         ]
     ]
@@ -92,6 +92,13 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Проверить подписку на тг канал"""
     query = update.callback_query
     # проверка
+    user_id = query.from_user.id
+    channel_id = "-1002068006897"
+    chat_member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+    if chat_member.status != "left":
+        logger.info("Вы подписаны")
+    else: logger.info("Вы НЕ подписаны")
+
     logger.info("Проверка прошла успешно")
     keyboard = [
         [
