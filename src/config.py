@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     DB_PASS: str
     DB_NAME: str
     MODE: str
+    TOKEN: str
 
     model_config = SettingsConfigDict(env_file=".env")
 

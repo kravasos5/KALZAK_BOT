@@ -23,6 +23,7 @@
     DB_USER=<database_user>
     DB_PASS=<database_password>
     DB_NAME=<database_name>
+    TOKEN=<bot token>
 
     MODE=DEV
     ```
