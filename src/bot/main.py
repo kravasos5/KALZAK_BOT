@@ -9,9 +9,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
-    ConversationHandler, MessageHandler,
+    ConversationHandler, MessageHandler, filters,
 )
-from telegram.ext.filters import ALL
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
@@ -32,6 +31,7 @@ class StagesEnum(Enum):
     CHOOSE_STICKER_TYPE: int = 2
     CHECK_SUBSCRIPTION: int = 3
     AFTER_SEND_PHOTO: int = 4
+    AFTER_SEND_PHOTOS: int = 5
 
 
 # Callback data
@@ -135,12 +135,22 @@ async def custom_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
              "— желательно без головного убора и очков;\n"
              "— не отправляйте фото животных, бот распознаёт только лица людей."
     )
-    return StagesEnum.AFTER_SEND_PHOTO.value
+    return StagesEnum.AFTER_SEND_PHOTOS.value
 
 
 async def after_send_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка фото"""
     logger.info('after_send_photo дошло')
+    user = update.message.from_user
+    photo_file = update.message.photo
+    print(photo_file)
+    print(photo_file[-1])
+    print(photo_file[-1].get_file())
+    # await photo_file.download_to_drive("user_photo.jpg")
+    logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
+    await update.message.reply_text(
+        "Gorgeous!"
+    )
     return ConversationHandler.END
 
 
@@ -171,8 +181,12 @@ def main() -> None:
                 CallbackQueryHandler(custom_stickers, pattern="^" + str(CallbackEnum.CUSTOM_STICKERS.value) + "$"),
             ],
             StagesEnum.AFTER_SEND_PHOTO.value: [
-                CallbackQueryHandler(after_send_photo, pattern="^" + str(CallbackEnum.SEND_PHOTO.value) + "$"),
-                # CallbackQueryHandler(custom_stickers, pattern="^" + str(CallbackEnum.CUSTOM_STICKERS.value) + "$"),
+                MessageHandler(filters.PHOTO, after_send_photo),
+                CommandHandler("cancel", end_work),
+            ],
+            StagesEnum.AFTER_SEND_PHOTOS.value: [
+                MessageHandler(filters.PHOTO, after_send_photo),
+                CommandHandler("cancel", end_work),
             ],
         },
         fallbacks=[CommandHandler("start", start)],
