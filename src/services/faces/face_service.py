@@ -1,71 +1,30 @@
 import cv2
-from insightface.app import FaceAnalysis
-from insightface.model_zoo import get_model
-import numpy as np
-from typing import Union
-import os
-
-
-class FaceSwapper:
-    def __init__(self, main_face_img: Union[str, np.ndarray]):
-        self.app = FaceAnalysis(name='buffalo_l')
-        self.app.prepare(ctx_id=0, det_size=(640, 640))
-        model_path = os.path.expanduser('~/.insightface/models/inswapper_128.onnx')
-        self.swapper = get_model(model_path)
-        # Если передается путь к изображению в виде строки, считываем изображение
-        if isinstance(main_face_img, str):
-            self.main_face_img = cv2.imread(main_face_img)
-        else:
-            self.main_face_img = main_face_img
-        # Предполагаем, что в main_face_img только одно лицо
-        main_faces = self.app.get(self.main_face_img)
-        print("asdadasd")
-        if len(main_faces) != 1:
-            raise ValueError("The provided main face image should contain exactly one face.")
-        self.main_face_info = main_faces[0]
-
-    def swap_face(self, img: Union[str, np.ndarray]) -> np.ndarray:
-        # Если передается путь к изображению в виде строки, считываем изображение
-        if isinstance(img, str):
-            img = cv2.imread(img)
-
-        # Получаем все лица на изображении
-        faces = self.app.get(img)
-        if not faces:
-            raise ValueError("No faces detected in the image for swapping.")
-
-        # Заменяем все лица на "главное" лицо
-        imgnew = img.copy()
-        for face in faces:
-            imgnew = self.swapper.get(imgnew, self.main_face_info, face, paste_back=True)
-
-        return imgnew
-
-    def change_main_face(self, new_main_face_img: Union[str, np.ndarray]):
-        # Если передается путь к изображению в виде строки, считываем изображение
-        if isinstance(new_main_face_img, str):
-            new_main_face_img = cv2.imread(new_main_face_img)
-
-        # Предполагаем, что в new_main_face_img только одно лицо
-        new_main_faces = self.app.get(new_main_face_img)
-        if len(new_main_faces) != 1:
-            raise ValueError("The provided new main face image should contain exactly one face.")
-        self.main_face_img = new_main_face_img
-        self.main_face_info = new_main_faces[0]
-
-
-# Пример использования:
-# создание экземпляра класса с изображением "главного" лица
-current_dir = os.path.dirname(os.path.realpath(__file__))
-main_face_path = os.path.join(current_dir, 'main_face.jpg')
-swapper = FaceSwapper(main_face_path)
-
-# подмена лиц на другом изображении
-try:
-    swapped_image = swapper.swap_face('target_face.jpg')
-    cv2.imshow('Swapped Image', swapped_image[:, :, ::-1])  # cv2 работает с BGR, matplotlib с RBG
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-except ValueError as e:
-    print("Error:", e)
-
+# Загрузка изображений
+image1 = cv2.imread('image1.jpg')
+image2 = cv2.imread('image2.jpg')
+# Инициализация детектора лиц (например, с использованием Haar cascade)
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Обнаружение лиц на изображениях
+faces1 = face_cascade.detectMultiScale(image1, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+faces2 = face_cascade.detectMultiScale(image2, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+# Проверка наличия лиц
+if len(faces1) == 0 or len(faces2) == 0:
+    print("Лица не обнаружены на одном из изображений.")
+    exit()
+# Предполагается, что обнаружено только одно лицо на каждом изображении
+x1, y1, w1, h1 = faces1[0]
+x2, y2, w2, h2 = faces2[0]
+# Вырезаем области с лицами
+face1 = image1[y1:y1+h1, x1:x1+w1]
+face2 = image2[y2:y2+h2, x2:x2+w2]
+# Выравнивание лиц
+face1_resized = cv2.resize(face1, (h2, w2))
+face2_resized = cv2.resize(face2, (h1, w1))
+# Замена лиц
+image1[y1:y1+h1, x1:x1+w1] = face2_resized
+image2[y2:y2+h2, x2:x2+w2] = face1_resized
+# Вывод результатов
+cv2.imshow('Image 1 with swapped face', image1)
+cv2.imshow('Image 2 with swapped face', image2)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
