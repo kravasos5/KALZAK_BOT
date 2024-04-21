@@ -102,6 +102,11 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
         logger.info("Вы подписаны")
     else:
         logger.info("Вы НЕ подписаны")
+        await update.callback_query.answer(
+            text="Вы НЕ подписаны",
+            show_alert=True
+        )
+        return StagesEnum.CHECK_SUBSCRIPTION.value
 
     logger.info("Проверка прошла успешно")
     keyboard = [
