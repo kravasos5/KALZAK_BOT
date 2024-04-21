@@ -1,4 +1,8 @@
+import os
+from pathlib import Path
+
 import cv2
+
 
 def face_replacer(image_name1, image_name2):
     # Загрузка изображений
@@ -17,19 +21,22 @@ def face_replacer(image_name1, image_name2):
     x1, y1, w1, h1 = faces1[0]
     x2, y2, w2, h2 = faces2[0]
     # Вырезаем области с лицами
-    face1 = image1[y1:y1+h1, x1:x1+w1]
-    face2 = image2[y2:y2+h2, x2:x2+w2]
+    face1 = image1[y1:y1 + h1, x1:x1 + w1]
+    face2 = image2[y2:y2 + h2, x2:x2 + w2]
     # Выравнивание лиц
     face1_resized = cv2.resize(face1, (h2, w2))
     face2_resized = cv2.resize(face2, (h1, w1))
     # Замена лиц
-    image1[y1:y1+h1, x1:x1+w1] = face2_resized
-    image2[y2:y2+h2, x2:x2+w2] = face1_resized
+    image1[y1:y1 + h1, x1:x1 + w1] = face2_resized
+    image2[y2:y2 + h2, x2:x2 + w2] = face1_resized
     # Вывод результатов
     # cv2.imshow('Image 1 with swapped face', image1)
     # cv2.imshow('Image 2 with swapped face', image2)
-    cv2.imwrite(f'replaced_{image_name2}.jpg', image2)
-    cv2.waitKey(0)
+    cv2.imwrite(filename='replaced_2.jpg', img=image2)
+    cv2.imwrite(filename='replaced_1.jpg', img=image1)
+    # cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-face_replacer('image1.jpg', 'image2.jpg')
+
+BASE_DIR = str(Path(__file__).resolve().parent)
+face_replacer(os.path.join(BASE_DIR, 'image1.jpg'), os.path.join(BASE_DIR, 'image2.jpg'))
