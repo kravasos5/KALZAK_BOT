@@ -37,12 +37,13 @@ class AbstractRepo(ABC):
 
 class BaseRepo(AbstractRepo):
     """Базовый репозиторий"""
+    table_name: str | None = None
 
     def create_one(self, *args, **kwargs):
         """Создать 1 объект в БД"""
         ...
 
-    def retrieve_one(self, *args, **kwargs):
+    def retrieve_one(self, id, *args, **kwargs):
         """Вернуть 1 объект из БД"""
         ...
 
