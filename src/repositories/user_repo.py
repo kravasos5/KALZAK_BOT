@@ -1,11 +1,4 @@
 from base_repo import BaseRepo
-from pathlib import Path
-import sys
-import asyncio
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-
 
 class UserRepo(BaseRepo):
     table_name = 'users'

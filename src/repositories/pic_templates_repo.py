@@ -1,17 +1,8 @@
 from base_repo import BaseRepo
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-from db.database import Conn
-
-import asyncio
 
 class PicTemplatesRepo(BaseRepo):
     table_name = 'pic_templates'
     col_1 = 'url'
-    db = Conn()
 
     async def create_one(self, url:str):
         """Создать 1 объект в БД"""

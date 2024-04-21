@@ -1,16 +1,7 @@
 from base_repo import BaseRepo
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-from db.database import Conn
-
-import asyncio
 
 class UsersPacksRepo(BaseRepo):
     table_name = 'users_packs'
-    db = Conn()
     col_1 = 'user_id'
     col_2 = 'link'
 
