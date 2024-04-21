@@ -78,7 +78,7 @@ async def start_check_subscription(update: Update, context: ContextTypes.DEFAULT
     logger.info("User %s started the subscribe checking process.", user['first_name'])
     keyboard = [
         [
-            InlineKeyboardButton("Подписаться", url="https://t.me/kalzak_chat"),#https://t.me/rasti_s_it
+            InlineKeyboardButton("Подписаться", url="https://t.me/kalzak_chat"),  # https://t.me/rasti_s_it
             InlineKeyboardButton("Я уже подписан", callback_data=str(CallbackEnum.CHECK_SUBSCRIPTION.value)),
         ]
     ]
@@ -228,11 +228,36 @@ async def end_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return StagesEnum.START_CONVERSATION.value
 
 
+async def help_(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user = update.message.from_user
+    print('ДОШЛО')
+    keyboard = [
+        [
+            InlineKeyboardButton("Сгенерировать стикер пак",
+                                 callback_data=str(CallbackEnum.START_CHECK_SUBSCRIPTION.value)),
+            InlineKeyboardButton("Завершить работу", callback_data=str(CallbackEnum.END.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Отправляю клавиатуру
+    await update.message.reply_text(
+        text=f"Здравствуйте, {user.first_name}!\n"
+             "Этот бот предназначен для генерации стикер паков.\n"
+             "Чтобы сгенерировать стикер пак, следуйте инструкциям Бота и нажимайте на кнопки.\n"
+             "Если возникли проблемы, можете написать админу @kravasos5.",
+        reply_markup=reply_markup
+    )
+    return StagesEnum.START_CONVERSATION.value
+
+
 def main() -> None:
     """Функция инициализации бота"""
     application = Application.builder().token(settings.TOKEN).build()
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            CommandHandler("help", help_)
+        ],
         states={
             StagesEnum.START_CONVERSATION.value: [
                 CallbackQueryHandler(start_check_subscription,
