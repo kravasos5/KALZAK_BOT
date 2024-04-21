@@ -3,7 +3,7 @@ import sys
 from enum import Enum
 from pathlib import Path
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Sticker, StickerSet
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -207,6 +207,44 @@ async def send_user_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     print(context.user_data['photos'])
     print(context.user_data['is_default'])
     # вызов сервиса замены лиц и отправка стикер пака юзеру
+
+    bot = context.bot
+    chat_id = update.message.chat_id
+    file = await bot.get_file(context.user_data['user_photo'].file_id)
+
+    # Загружаем фотографию
+    photo_file = await file.download_to_drive()
+    # Создаем стикер из загруженной фотографии
+    sticker = Sticker(
+        file_id=user_photo.file_id,
+        emoji='😊',  # Эмодзи для стикера (можно изменить на нужное)
+        file_unique_id=user_photo.file_id,
+        height=50,
+        width=50,
+        is_animated=False,
+        is_video=False,
+        type="REGULAR"
+    )
+    # Создаем стикерпак
+    sticker_set = StickerSet(
+        name='YourStickerPack',  # Имя стикерпака
+        title='Your Sticker Pack',  # Заголовок стикерпака
+        stickers=[sticker],  # Добавляем созданный стикер в стикерпак
+        sticker_type="REGULAR"
+    )
+    # Отправляем стикерпак пользователю
+    await bot.create_new_sticker_set(
+        user_id=chat_id,  # ID чата (можно использовать и другие ID)
+        name=sticker_set.name,
+        title=sticker_set.title,
+        stickers=[sticker]
+    )
+    # Отправляем стикер в чат
+    await bot.send_sticker(
+        chat_id=chat_id,
+        sticker=sticker.file_id
+    )
+
     return ConversationHandler.END
 
 
