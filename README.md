@@ -30,4 +30,5 @@
     `DEV` режим для разработки, `TEST` для тестирования, но для тестов будет создан отдельный *.test.env*
    
 Чтобы запустить бота, нужно прописать из корня `python src/bot/main.py`
-видео с работой проекта https://disk.yandex.ru/i/HKYpgX8JTLR4vg
+
+Видео с работой проекта https://disk.yandex.ru/i/HKYpgX8JTLR4vg
