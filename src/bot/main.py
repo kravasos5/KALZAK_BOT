@@ -30,8 +30,10 @@ class StagesEnum(Enum):
     START_CONVERSATION: int = 1
     CHOOSE_STICKER_TYPE: int = 2
     CHECK_SUBSCRIPTION: int = 3
-    AFTER_SEND_PHOTO: int = 4
-    AFTER_SEND_PHOTOS: int = 5
+    BEFORE_SEND_PHOTO: int = 4
+    BEFORE_SEND_PHOTOS: int = 5
+    SEND_PHOTOS: int = 6
+    AFTER_SEND_PHOTOS: int = 7
 
 
 # Callback data
@@ -44,6 +46,7 @@ class CallbackEnum(Enum):
     SEND_PHOTO: int = 5
     START_GENERATE: int = 6
     END: int = 7
+    STOP_PHOTOS: int = 8
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -69,8 +72,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def start_check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Проверка подписки на тг канал"""
     # Получаю юзера
-    user = update.callback_query.from_user
     query = update.callback_query
+    user = query.from_user
     # Добавляю лог
     logger.info("User %s started the subscribe checking process.", user['first_name'])
     keyboard = [
@@ -81,8 +84,8 @@ async def start_check_subscription(update: Update, context: ContextTypes.DEFAULT
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text='Чтобы начать генерацию стикер пака с Вами в главной роли,\
-                 подпишитесь на Telegram-канал "Чат | Расти с IT"',
+        text='Чтобы начать генерацию стикер пака с Вами в главной роли, ' +
+             'подпишитесь на Telegram-канал "Чат | Расти с IT"',
         reply_markup=reply_markup
     )
     return StagesEnum.CHECK_SUBSCRIPTION.value
@@ -97,13 +100,14 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat_member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
     if chat_member.status != "left":
         logger.info("Вы подписаны")
-    else: logger.info("Вы НЕ подписаны")
+    else:
+        logger.info("Вы НЕ подписаны")
 
     logger.info("Проверка прошла успешно")
     keyboard = [
         [
-            InlineKeyboardButton("Дефолтный стикер пак", callback_data=str(CallbackEnum.DEFAULT_STICKERS.value)),
-            InlineKeyboardButton("Кастомный стикер пак", callback_data=str(CallbackEnum.CUSTOM_STICKERS.value)),
+            InlineKeyboardButton("Обычный стикер пак", callback_data=str(CallbackEnum.DEFAULT_STICKERS.value)),
+            InlineKeyboardButton("Пользовательский стикер пак", callback_data=str(CallbackEnum.CUSTOM_STICKERS.value)),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -114,10 +118,17 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def default_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Генерация обычного стикер пака"""
     query = update.callback_query
-    user = query.from_user
-    logger.info("User %s chose default sticker pack.", user['first_name'])
+    context.user_data['photos'] = []
+    context.user_data['is_default'] = True
 
+    keyboard = [
+        [
+            InlineKeyboardButton("Отмена", callback_data=str(CallbackEnum.END.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
+        reply_markup=reply_markup,
         text="Чтобы получить ваш уникальный стикерпак, загрузите, пожалуйста, свою фотографию.\n"
              "Следуйте советам:\n"
              "— на фото должно быть хорошо видно ваше лицо;\n"
@@ -126,15 +137,22 @@ async def default_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) -
              "— если вы носите очки, то попробуйте использовать фото без них;\n"
              "— не отправляйте фото животных, бот распознаёт только лица людей."
     )
-    return StagesEnum.AFTER_SEND_PHOTO.value
+    return StagesEnum.AFTER_SEND_PHOTOS.value
 
 
 async def custom_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Сгенерировать шаблонный стикер пак"""
     query = update.callback_query
-    await query.answer()
-
+    context.user_data['photos'] = []
+    context.user_data['is_default'] = False
+    keyboard = [
+        [
+            InlineKeyboardButton("Отмена", callback_data=str(CallbackEnum.END.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
+        reply_markup=reply_markup,
         text="Чтобы получить ваш уникальный стикерпак, загрузите, пожалуйста, шаблоны фотографий для стикерпака.\n"
              "Следуйте советам:\n"
              "— на фото должно быть хорошо видно лицо;\n"
@@ -142,29 +160,72 @@ async def custom_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
              "— желательно без головного убора и очков;\n"
              "— не отправляйте фото животных, бот распознаёт только лица людей."
     )
+    return StagesEnum.BEFORE_SEND_PHOTOS.value
+
+
+async def before_send_photos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка отправки шаблонных фото"""
+    logger.info('after_send_photo дошло')
+    photo = await update.message.photo[-1].get_file()
+    context.user_data['photos'].append(photo)
+    if len(context.user_data['photos']) == 50:
+        return await stop_sending_photos(update, context)
+    keyboard = [
+        [
+            InlineKeyboardButton("Завершить отправку", callback_data=str(CallbackEnum.STOP_PHOTOS.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        f"{len(context.user_data['photos'])} / 50 фото загружено. Хотите отправить ещё ?",
+        reply_markup=reply_markup
+    )
+    return StagesEnum.BEFORE_SEND_PHOTOS.value
+
+
+async def stop_sending_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Завершить отправку фото"""
+    logger.info('Отправка фото завершена')
+    keyboard = [
+        [
+            InlineKeyboardButton("Отмена", callback_data=str(CallbackEnum.END.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.edit_message_text(
+        'Отправка шаблонных фото завершена! Теперь отправьте ваше фото!',
+        reply_markup=reply_markup
+    )
     return StagesEnum.AFTER_SEND_PHOTOS.value
 
 
-async def after_send_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка фото"""
-    logger.info('after_send_photo дошло')
-    user = update.message.from_user
-    photo_file = update.message.photo
-    print(photo_file)
-    print(photo_file[-1])
-    print(photo_file[-1].get_file())
-    # await photo_file.download_to_drive("user_photo.jpg")
-    logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
-    await update.message.reply_text(
-        "Gorgeous!"
-    )
+async def send_user_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Отправка фото пользователя"""
+    user_photo = await update.message.photo[-1].get_file()
+    context.user_data['user_photo'] = user_photo
+    print(context.user_data['user_photo'])
+    print(context.user_data['photos'])
+    print(context.user_data['is_default'])
+    # вызов сервиса замены лиц и отправка стикер пака юзеру
     return ConversationHandler.END
 
 
 async def end_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Завершить работу"""
-    logger.info('end_work дошло')
-    return ConversationHandler.END
+    query = update.callback_query
+    context.user_data['photos'] = []
+    keyboard = [
+        [
+            InlineKeyboardButton("Сгенерировать стикер пак",
+                                 callback_data=str(CallbackEnum.START_CHECK_SUBSCRIPTION.value)),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        reply_markup=reply_markup,
+        text="Чтобы начать заново, нажмите на кнопку"
+    )
+    return StagesEnum.START_CONVERSATION.value
 
 
 def main() -> None:
@@ -187,13 +248,14 @@ def main() -> None:
                 CallbackQueryHandler(default_stickers, pattern="^" + str(CallbackEnum.DEFAULT_STICKERS.value) + "$"),
                 CallbackQueryHandler(custom_stickers, pattern="^" + str(CallbackEnum.CUSTOM_STICKERS.value) + "$"),
             ],
-            StagesEnum.AFTER_SEND_PHOTO.value: [
-                MessageHandler(filters.PHOTO, after_send_photo),
-                CommandHandler("cancel", end_work),
+            StagesEnum.BEFORE_SEND_PHOTOS.value: [
+                MessageHandler(filters.PHOTO, before_send_photos),
+                CallbackQueryHandler(stop_sending_photos, pattern="^" + str(CallbackEnum.STOP_PHOTOS.value) + "$"),
+                CallbackQueryHandler(end_work, pattern="^" + str(CallbackEnum.END.value) + "$"),
             ],
             StagesEnum.AFTER_SEND_PHOTOS.value: [
-                MessageHandler(filters.PHOTO, after_send_photo),
-                CommandHandler("cancel", end_work),
+                MessageHandler(filters.PHOTO, send_user_photo),
+                CallbackQueryHandler(end_work, pattern="^" + str(CallbackEnum.END.value) + "$"),
             ],
         },
         fallbacks=[CommandHandler("start", start)],
