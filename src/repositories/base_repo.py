@@ -39,7 +39,7 @@ class BaseRepo(AbstractRepo):
     """Базовый репозиторий"""
     table_name: str | None = None
     db = Conn()
-
+  
     async def create_one(self, data):
         """Создать 1 объект в БД"""
         columns = ', '.join(data.key())
@@ -51,8 +51,8 @@ class BaseRepo(AbstractRepo):
             print(f"Запрос выполнен.")
         except Exception as e:
             print(f"Ошибка: {e}")
-        
-    async def retrieve_one(self, id):
+
+    def retrieve_one(self, id, *args, **kwargs):
         """Вернуть 1 объект из БД"""
         query = f"SELECT * FROM {self.table_name} WHERE id = {id}"
         try:
